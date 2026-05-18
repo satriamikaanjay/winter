@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Menghilangkan panah atas/bawah pada input number */
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+    </style>
+</head>
+<body class="bg-zinc-900 min-h-screen flex items-center justify-center font-sans text-zinc-200">
+
+    <!-- Card Container -->
+    <div class="bg-zinc-800/50 p-8 rounded-2xl shadow-2xl backdrop-blur-sm border border-zinc-700/50 max-w-sm w-full mx-4 text-center">
+        
+        <!-- Ikon / Logo (Opsional) -->
+        <div class="mb-6 flex justify-center">
+            <div class="w-16 h-16 bg-rose-900/30 rounded-full flex items-center justify-center text-rose-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+            </div>
+        </div>
+
+        <h1 class="text-2xl font-semibold mb-2 text-zinc-100">Chapter 1</h1>
+        <p class="text-sm text-zinc-400 mb-8">Masukkan tanggal awal cerita kita dimulai.</p>
+
+        <!-- PIN Inputs -->
+        <form id="pinForm" class="space-y-6">
+            <div class="flex justify-center gap-2 sm:gap-3">
+                <input type="number" maxlength="1" class="pin-input w-10 h-12 sm:w-12 sm:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl font-medium text-zinc-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all" autofocus>
+                <input type="number" maxlength="1" class="pin-input w-10 h-12 sm:w-12 sm:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl font-medium text-zinc-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all">
+                <input type="number" maxlength="1" class="pin-input w-10 h-12 sm:w-12 sm:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl font-medium text-zinc-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all">
+                <input type="number" maxlength="1" class="pin-input w-10 h-12 sm:w-12 sm:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl font-medium text-zinc-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all">
+                <input type="number" maxlength="1" class="pin-input w-10 h-12 sm:w-12 sm:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl font-medium text-zinc-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all">
+                <input type="number" maxlength="1" class="pin-input w-10 h-12 sm:w-12 sm:h-14 bg-zinc-900 border border-zinc-700 rounded-lg text-center text-xl font-medium text-zinc-100 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none transition-all">
+            </div>
+
+            <button type="button" onclick="checkPin()" class="w-full bg-rose-800 hover:bg-rose-700 text-white font-medium py-3 rounded-lg transition-colors duration-200">
+                Buka Kenangan
+            </button>
+        </form>
+
+        <p id="errorMessage" class="text-rose-400 text-sm mt-4 hidden">Tanggal yang kamu masukkan salah, coba lagi ya.</p>
+    </div>
+
+    <!-- Script Logika PIN -->
+    <script>
+        const inputs = document.querySelectorAll('.pin-input');
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Ganti dengan tanggal jadian kalian (contoh: 120526 untuk 12 Mei 2026)
+        const correctPIN = "120526"; 
+
+        inputs.forEach((input, index) => {
+            input.addEventListener('input', (e) => {
+                // Memastikan hanya 1 digit yang dimasukkan
+                if (e.target.value.length > 1) {
+                    e.target.value = e.target.value.slice(0, 1);
+                }
+                // Pindah ke kotak selanjutnya jika sudah diisi
+                if (e.target.value.length === 1 && index < inputs.length - 1) {
+                    inputs[index + 1].focus();
+                }
+            });
+
+            // Pindah ke kotak sebelumnya jika menekan backspace
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Backspace' && e.target.value === '' && index > 0) {
+                    inputs[index - 1].focus();
+                }
+            });
+        });
+
+        function checkPin() {
+            let enteredPin = "";
+            inputs.forEach(input => {
+                enteredPin += input.value;
+            });
+
+            if (enteredPin === correctPIN) {
+                // Sembunyikan error dan arahkan ke halaman utama
+                errorMessage.classList.add('hidden');
+                // Ganti "home.html" dengan file tujuanmu selanjutnya
+                window.location.href = "home.html"; 
+            } else {
+                // Tampilkan error dan kosongkan input
+                errorMessage.classList.remove('hidden');
+                inputs.forEach(input => input.value = "");
+                inputs[0].focus();
+            }
+        }
+    </script>
+</body>
+</html>
