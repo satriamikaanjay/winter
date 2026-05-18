@@ -14,6 +14,16 @@
             -webkit-text-fill-color: transparent;
         }
     </style>
+
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "66b87356-d946-43da-86ca-7fc2b0d76454",
+    });
+  });
+</script>
 </head>
 <body class="bg-zinc-900 min-h-screen text-zinc-200 selection:bg-rose-500/30">
 
@@ -136,51 +146,7 @@
             setInterval(updateTimer, 1000);
             updateTimer();
 
-            // 2. SISTEM NOTIFIKASI (Anniversary & Ulang Tahun)
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission(); // Meminta izin menampilkan notif saat web pertama dibuka
-            }
-
-            function checkSpecialDates() {
-                if ("Notification" in window && Notification.permission === "granted") {
-                    const today = new Date();
-                    const d = today.getDate();
-                    const m = today.getMonth() + 1; // Januari = 1
-
-                    // --- ATUR TANGGAL DI SINI ---
-                    const anniDate = 12, anniMonth = 5;       // 12 Mei
-                    const satriaDate = 15, satriaMonth = 8;   // Ganti dengan tanggal lahirmu
-                    const windaDate = 27, windaMonth = 2;    // Ganti dengan tanggal lahir Winda
-
-                    let title = "";
-                    let body = "";
-
-                    if (d === anniDate && m === anniMonth) {
-                        title = "Happy Anniversary! 💖";
-                        body = "Selamat hari jadi untuk kita! Setiap detik bersamamu adalah cerita terbaik.";
-                    } else if (d === satriaDate && m === satriaMonth) {
-                        title = "🎉 Happy Birthday Satria!";
-                        body = "Selamat ulang tahun! Semoga semua impian dan cita-citamu tercapai.";
-                    } else if (d === windaDate && m === windaMonth) {
-                        title = "🎉 Happy Birthday Winda!";
-                        body = "Selamat ulang tahun sayang! Terima kasih sudah hadir di ceritaku.";
-                    }
-
-                    // Jika ada momen spesial hari ini, tampilkan notif (dicegah spam pakai localStorage)
-                    if (title !== "") {
-                        const notifKey = "notif_" + title + "_" + today.toDateString();
-                        if (!localStorage.getItem(notifKey)) {
-                            const notification = new Notification(title, { 
-                                body: body,
-                                icon: "https://cdn-icons-png.flaticon.com/512/837/837834.png"
-                            });
-                            localStorage.setItem(notifKey, "true");
-                        }
-                    }
-                }
-            }
-            // Cek notif 3 detik setelah web dimuat
-            setTimeout(checkSpecialDates, 3000);
+            
         });
     </script>
 
