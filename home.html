@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,19 +13,37 @@
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+        @keyframes blink {
+            0%, 96%, 98% { transform: scaleY(1); }
+            97% { transform: scaleY(0.1); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        /* Custom scrollbar untuk tampilan History */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+        
+        /* Lightbox transisi halus */
+        #lightboxModal.show { opacity: 1; }
     </style>
 
     <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "66b87356-d946-43da-86ca-7fc2b0d76454",
-    });
-  });
-</script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({ appId: "66b87356-d946-43da-86ca-7fc2b0d76454" });
+      });
+    </script>
+
+    <script>
+        const currentUser = localStorage.getItem('loggedInUser');
+        if (!currentUser) window.location.href = "index.html";
+    </script>
 </head>
-<body class="bg-zinc-900 min-h-screen text-zinc-200 selection:bg-rose-500/30">
+<body class="bg-zinc-900 min-h-screen text-zinc-200 selection:bg-rose-500/30 pb-20">
 
     <nav class="border-b border-zinc-800 bg-zinc-900/80 backdrop-blur-md sticky top-0 z-50">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -36,7 +54,10 @@
                     </svg>
                     <span class="font-semibold text-lg tracking-wide">Our<span class="text-rose-400">Story</span></span>
                 </div>
-                <div class="text-sm text-zinc-400">Est. 12 Mei 2026</div>
+                <div class="flex items-center gap-4 text-sm">
+                    <span class="text-zinc-400 hidden sm:inline">Est. 12 Mei 2026</span>
+                    <button onclick="logout()" class="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-3 py-1.5 rounded-md transition-colors border border-zinc-700">Logout</button>
+                </div>
             </div>
         </div>
     </nav>
@@ -78,29 +99,116 @@
                     <span>👧🏻</span> Winda: <span class="text-zinc-300 font-medium">27 Februari 2008</span>
                 </div>
             </div>
+
+            <div class="flex flex-wrap justify-center gap-3 w-full max-w-3xl mt-6">
+                <a href="#catatanSection" class="bg-zinc-800/60 hover:bg-zinc-700 border border-zinc-700/50 px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all">
+                    <span>📝</span> Catatan Harian
+                </a>
+                <a href="#galeriSection" class="bg-zinc-800/60 hover:bg-zinc-700 border border-zinc-700/50 px-5 py-2 rounded-full text-sm flex items-center gap-2 transition-all">
+                    <span>📸</span> Galeri Bersama
+                </a>
+            </div>
         </div>
 
-        <div class="mt-20 border-t border-zinc-800 pt-16 w-full max-w-4xl mx-auto">
+        <div class="mt-8 mb-12 w-full max-w-3xl mx-auto bg-zinc-800/40 border border-zinc-700/50 rounded-2xl p-6 relative backdrop-blur-sm flex flex-col items-center">
+            
+            <div class="absolute top-4 right-6 flex items-center gap-2 bg-zinc-900/80 px-4 py-2 rounded-full border border-rose-900/30" title="Streak Memberi Makan">
+                <span class="text-xl animate-pulse">🔥</span>
+                <span id="streakCount" class="text-xl font-bold text-rose-400">0</span>
+            </div>
+
+            <div class="flex items-center gap-2 mb-2 mt-4">
+                <h2 id="petNameDisplay" class="text-xl font-medium text-zinc-300">Panda Merah Kita</h2>
+                <button id="editNameBtn" class="text-zinc-500 hover:text-zinc-300 transition-colors text-sm" title="Ganti Nama">✏️</button>
+            </div>
+            
+            <div id="editNameForm" class="hidden mb-4 flex items-center gap-2">
+                <input type="text" id="petNameInput" class="bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-200 text-sm outline-none focus:border-rose-500 w-40" placeholder="Nama pet...">
+                <button id="saveNameBtn" class="bg-zinc-700 hover:bg-zinc-600 text-white px-3 py-1.5 rounded-lg text-sm transition-colors">Simpan</button>
+            </div>
+            
+            <div class="relative mt-6 mb-8 flex items-center justify-center animate-[float_3s_ease-in-out_infinite]" id="petContainer">
+                <div id="petBody" class="relative w-32 h-28 bg-[#B13C16] rounded-t-full rounded-b-[40%] shadow-[0_0_20px_rgba(177,60,22,0.3)] flex items-center justify-center transition-transform duration-300">
+                    <div class="absolute -top-7 left-0 w-12 h-12 bg-[#B13C16] rounded-full"><div class="absolute top-2 left-2 w-7 h-7 bg-zinc-100 rounded-full"></div></div>
+                    <div class="absolute -top-7 right-0 w-12 h-12 bg-[#B13C16] rounded-full"><div class="absolute top-2 right-2 w-7 h-7 bg-zinc-100 rounded-full"></div></div>
+                    <div class="absolute bottom-2 w-20 h-14 bg-zinc-100 rounded-[50%_50%_30%_30%_/_70%_70%_30%_30%]"></div>
+                    <div class="absolute top-9 left-2 w-8 h-10 bg-zinc-100 rounded-full rotate-12"></div>
+                    <div class="absolute top-9 right-2 w-8 h-10 bg-zinc-100 rounded-full -rotate-12"></div>
+                    <div class="absolute top-10 w-full px-6 flex justify-between z-10">
+                        <div class="w-3 h-4 bg-zinc-900 rounded-full animate-[blink_4s_infinite]"></div>
+                        <div class="w-3 h-4 bg-zinc-900 rounded-full animate-[blink_4s_infinite]"></div>
+                    </div>
+                    <div class="absolute top-[60px] w-5 h-3 bg-zinc-950 rounded-full z-10"></div>
+                    <div id="petMouth" class="absolute top-[74px] w-5 h-3 border-b-2 border-zinc-900 rounded-full z-10 transition-all duration-300"></div>
+                    <div class="absolute -bottom-4 -left-7 w-10 h-20 bg-[#B13C16] rounded-full -rotate-45 z-[-1]">
+                         <div class="absolute top-5 h-3.5 w-full bg-[#782910]/60"></div>
+                         <div class="absolute top-11 h-3.5 w-full bg-[#782910]/60"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3 w-full justify-center mt-2">
+                <button id="feedSatriaBtn" disabled class="bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:border-zinc-700 disabled:cursor-not-allowed border border-transparent text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto">
+                    <span>⏳</span> Memuat...
+                </button>
+                <button id="feedWindaBtn" disabled class="bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-500 disabled:border-zinc-700 disabled:cursor-not-allowed border border-transparent text-white font-medium px-6 py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 w-full sm:w-auto">
+                    <span>⏳</span> Memuat...
+                </button>
+            </div>
+            
+            <p id="feedStatus" class="text-xs text-zinc-400 mt-4 text-center h-4">Menghubungkan ke database...</p>
+
+            <div id="waNudgeContainer" class="hidden mt-3 flex flex-col items-center gap-2">
+                <p class="text-xs text-zinc-500 italic">Pasanganmu belum ngasih makan nih...</p>
+                <a id="waNudgeBtn" href="#" target="_blank" class="bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366] hover:text-white border border-[#25D366]/50 font-medium px-5 py-2.5 rounded-xl transition-all duration-300 flex items-center gap-2 text-sm shadow-[0_0_15px_rgba(37,211,102,0.1)]">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13.601 2.326A7.85 7.85 0 0 0 7.994 0C3.627 0 .068 3.558.064 7.926c0 1.399.366 2.76 1.057 3.965L0 16l4.204-1.102a7.9 7.9 0 0 0 3.79.965h.004c4.368 0 7.926-3.558 7.93-7.93A7.9 7.9 0 0 0 13.6 2.326zM7.994 14.521a6.6 6.6 0 0 1-3.356-.92l-.24-.144-2.494.654.666-2.433-.156-.251a6.56 6.56 0 0 1-1.007-3.505c0-3.626 2.957-6.584 6.591-6.584a6.56 6.56 0 0 1 4.66 1.931 6.56 6.56 0 0 1 1.928 4.66c-.004 3.639-2.961 6.592-6.592 6.592m3.615-4.934c-.197-.099-1.17-.578-1.353-.646-.182-.065-.315-.099-.445.099-.133.197-.513.646-.627.775-.114.133-.232.148-.43.05-.197-.1-.836-.308-1.592-.985-.59-.525-.985-1.175-1.103-1.372-.114-.198-.011-.304.088-.403.087-.088.197-.232.296-.346.1-.114.133-.198.198-.33.065-.134.034-.248-.015-.347-.05-.099-.445-1.076-.612-1.47-.16-.389-.323-.335-.445-.34-.114-.007-.247-.007-.38-.007a.73.73 0 0 0-.529.247c-.182.198-.691.677-.691 1.654s.71 1.916.81 2.049c.098.133 1.394 2.132 3.383 2.992.47.205.84.326 1.129.418.475.152.904.129 1.246.08.38-.058 1.171-.48 1.338-.943.164-.464.164-.86.114-.943-.049-.084-.182-.133-.38-.232"/></svg>
+                    <span id="waNudgeText">Tagih Ayang</span>
+                </a>
+            </div>
+        </div>
+
+        <div id="catatanSection" class="mt-12 border-t border-zinc-800 pt-16 w-full max-w-4xl mx-auto scroll-mt-16">
+            <h2 class="text-3xl font-semibold mb-2 text-center text-zinc-100">Catatan Harian</h2>
+            <p class="text-zinc-400 text-center mb-10 text-sm">Pesan manis untuk menyemangati hari satu sama lain.</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                <div class="bg-zinc-800/40 p-6 rounded-2xl border border-rose-900/30 relative">
+                    <h3 class="text-lg font-medium text-rose-400 mb-3 flex items-center gap-2">
+                        <span>💌</span> <span id="noteToMeTitle">Catatan dari Ayang</span>
+                    </h3>
+                    <div class="bg-zinc-900/50 p-5 rounded-xl min-h-[120px] flex items-center justify-center border border-zinc-800/50">
+                        <p id="noteToMeText" class="text-center text-sm leading-relaxed">Memuat catatan...</p>
+                    </div>
+                </div>
+
+                <div class="bg-zinc-800/40 p-6 rounded-2xl border border-blue-900/30 relative flex flex-col">
+                    <h3 class="text-lg font-medium text-blue-400 mb-3 flex items-center gap-2">
+                        <span>✍️</span> <span id="noteFromMeTitle">Catatan untuk Ayang</span>
+                    </h3>
+                    <textarea id="myNoteInput" rows="3" class="w-full flex-1 bg-zinc-900 border border-zinc-700 rounded-xl p-4 text-sm text-zinc-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none" placeholder="Tulis pesan semangat untuknya hari ini..."></textarea>
+                    <button id="saveNoteBtn" class="mt-4 w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-xl text-sm font-medium transition-colors">Simpan Catatan</button>
+                </div>
+            </div>
+
+            <div class="flex justify-center mt-8">
+                <button onclick="openHistoryModal()" class="text-sm text-zinc-400 hover:text-zinc-100 bg-zinc-800/50 hover:bg-zinc-700 px-6 py-2.5 rounded-full flex items-center gap-2 transition-colors border border-zinc-700">
+                    <span>🕰️</span> Buka Histori Catatan
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-16 border-t border-zinc-800 pt-16 w-full max-w-4xl mx-auto">
             <h2 class="text-3xl font-semibold mb-2 text-center text-zinc-100">Wishlist Kita</h2>
             <p class="text-zinc-400 text-center mb-10 text-sm">Apa saja yang ingin kita capai atau lakukan bersama ke depannya?</p>
 
             <form id="wishForm" class="bg-zinc-800/40 border border-zinc-700/50 rounded-2xl p-6 mb-10 backdrop-blur-sm max-w-3xl mx-auto">
                 <div class="flex flex-col sm:flex-row gap-4">
-                    <select id="creatorName" required class="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-zinc-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none w-full sm:w-1/3">
-                        <option value="" disabled selected>Siapa yang nulis?</option>
-                        <option value="Satria">Satria</option>
-                        <option value="Winda">Winda</option>
-                    </select>
-                    
-                    <input type="text" id="wishText" required placeholder="Tulis harapan di sini..." class="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-zinc-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none w-full sm:w-2/3">
-                    
+                    <input type="text" id="wishText" required placeholder="Tulis harapan di sini..." class="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-zinc-200 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 outline-none w-full">
                     <button type="submit" id="submitBtn" class="bg-rose-600 hover:bg-rose-500 text-white font-medium px-6 py-3 rounded-lg transition-colors duration-200 whitespace-nowrap">
                         Simpan
                     </button>
                 </div>
             </form>
-
-            <div id="loading" class="text-center text-rose-400 my-4 hidden">Memuat wishlist...</div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-8">
                 <div class="bg-zinc-900/50 p-6 rounded-2xl border border-blue-900/30">
@@ -119,149 +227,476 @@
             </div>
         </div>
 
+        <div id="galeriSection" class="mt-16 border-t border-zinc-800 pt-16 w-full max-w-4xl mx-auto scroll-mt-16">
+            <h2 class="text-3xl font-semibold mb-2 text-center text-zinc-100">Galeri Bersama</h2>
+            <p class="text-zinc-400 text-center mb-8 text-sm">Tempat menyimpan memori visual kita.</p>
+
+            <div class="flex flex-col items-center justify-center mb-10">
+                <input type="file" id="mediaUpload" accept="image/*,video/*" class="hidden">
+                <label for="mediaUpload" class="cursor-pointer bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 px-6 py-3 rounded-xl transition-colors duration-200 flex items-center gap-2 text-sm font-medium shadow-lg hover:shadow-xl">
+                    <span>📸</span> Tambah Foto / Video
+                </label>
+                <div id="uploadStatus" class="mt-4 hidden items-center gap-2 text-sm text-rose-400 bg-rose-500/10 px-4 py-2 rounded-lg border border-rose-500/20">
+                    <span class="animate-spin text-lg">⏳</span> Memproses unggahan... harap tunggu.
+                </div>
+            </div>
+
+            <div id="galleryGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                <p class="col-span-full text-center text-zinc-500 text-sm py-10">Memuat galeri...</p>
+            </div>
+        </div>
+
     </main>
+
+    <div id="historyModal" class="fixed inset-0 z-[100] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 transition-opacity">
+        <div class="bg-zinc-900 border border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-zinc-800 flex justify-between items-center">
+                <h3 class="text-xl font-semibold text-zinc-100 flex items-center gap-2"><span>🕰️</span> Mesin Waktu Catatan</h3>
+                <button onclick="closeHistoryModal()" class="text-zinc-500 hover:text-white text-3xl leading-none">&times;</button>
+            </div>
+            <div id="historyContent" class="p-5 overflow-y-auto flex-1 space-y-4">
+                <p class="text-center text-zinc-500 text-sm">Memuat histori...</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="lightboxModal" class="fixed inset-0 z-[110] hidden bg-black/95 backdrop-blur-md flex items-center justify-center opacity-0 transition-opacity duration-300">
+        <button onclick="closeLightbox()" class="absolute top-4 right-4 sm:top-6 sm:right-6 text-zinc-400 hover:text-white text-4xl leading-none z-50 transition-colors">&times;</button>
+        
+        <button onclick="prevMedia()" class="absolute left-2 sm:left-6 text-zinc-400 hover:text-white text-3xl sm:text-5xl z-50 p-2 sm:p-4 bg-black/20 rounded-full hover:bg-black/50 transition-all">&#10094;</button>
+        
+        <div class="w-full max-w-4xl max-h-[85vh] flex flex-col items-center justify-center px-14 sm:px-24 relative">
+            <img id="lightboxImg" src="" class="max-w-full max-h-[75vh] object-contain rounded-lg hidden shadow-2xl">
+            <video id="lightboxVideo" src="" class="max-w-full max-h-[75vh] object-contain rounded-lg hidden shadow-2xl" controls></video>
+            
+            <div id="lightboxInfo" class="text-zinc-300 text-sm mt-4 text-center bg-zinc-900/80 px-5 py-2 rounded-full border border-zinc-700/50 backdrop-blur-sm"></div>
+        </div>
+
+        <button onclick="nextMedia()" class="absolute right-2 sm:right-6 text-zinc-400 hover:text-white text-3xl sm:text-5xl z-50 p-2 sm:p-4 bg-black/20 rounded-full hover:bg-black/50 transition-all">&#10095;</button>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // 1. TIMER
-            const startDate = new Date(2026, 4, 12, 0, 0, 0).getTime(); 
+        function logout() {
+            localStorage.removeItem('loggedInUser');
+            window.location.href = "index.html";
+        }
 
+        // ================= TIMER JADIAN =================
+        document.addEventListener("DOMContentLoaded", function() {
+            const startDate = new Date(2026, 4, 12, 0, 0, 0).getTime(); 
             function updateTimer() {
                 const now = new Date().getTime();
                 let distance = now - startDate;
                 if (distance < 0) distance = 0;
-
-                const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                document.getElementById("days").innerText = days;
-                document.getElementById("hours").innerText = hours;
-                document.getElementById("minutes").innerText = minutes;
-                document.getElementById("seconds").innerText = seconds;
+                document.getElementById("days").innerText = Math.floor(distance / (1000 * 60 * 60 * 24));
+                document.getElementById("hours").innerText = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                document.getElementById("minutes").innerText = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                document.getElementById("seconds").innerText = Math.floor((distance % (1000 * 60)) / 1000);
             }
             setInterval(updateTimer, 1000);
             updateTimer();
-
-            
         });
-    </script>
 
-    <script>
+        // Supabase Init
         const SUPABASE_URL = 'https://nbktmzaghcablkgghwrg.supabase.co'; 
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ia3RtemFnaGNhYmxrZ2dod3JnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNTU4ODYsImV4cCI6MjA5NDYzMTg4Nn0.iXLKWkSvcuz1SnzUAz73fVIcgDk4QCwP9qU14vhn6uo'; 
-        
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Utilities
+        function getTodayString() {
+            const now = new Date();
+            return now.toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); 
+        }
+
+        // ================= WISHLIST KITA =================
         const wishForm = document.getElementById('wishForm');
         const wishlistSatria = document.getElementById('wishlistSatria');
         const wishlistWinda = document.getElementById('wishlistWinda');
-        const loadingEl = document.getElementById('loading');
         const submitBtn = document.getElementById('submitBtn');
 
         async function fetchWishlists() {
-            loadingEl.classList.remove('hidden');
-            
-            const { data, error } = await db
-                .from('wishlists')
-                .select('*')
-                .order('created_at', { ascending: false });
-
-            loadingEl.classList.add('hidden');
-
-            if (error) {
-                console.error('Error fetching:', error);
-                return;
-            }
-
-            renderWishlists(data);
+            const { data, error } = await db.from('wishlists').select('*').order('created_at', { ascending: false });
+            if (data) renderWishlists(data);
         }
 
         function renderWishlists(wishes) {
-            wishlistSatria.innerHTML = '';
-            wishlistWinda.innerHTML = '';
-
-            let countSatria = 0;
-            let countWinda = 0;
-
+            wishlistSatria.innerHTML = ''; wishlistWinda.innerHTML = '';
+            let countSatria = 0; let countWinda = 0;
             if (wishes && wishes.length > 0) {
                 wishes.forEach(wish => {
                     const card = document.createElement('div');
                     card.className = "bg-zinc-800/30 border border-zinc-700/50 rounded-xl p-4 hover:bg-zinc-800/50 transition-colors group relative";
-                    
                     const dateStr = new Date(wish.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
                     
-                    // Struktur Card dengan Tombol Hapus (Ikon Sampah)
-                    card.innerHTML = `
-                        <div class="flex justify-between items-start mb-2 gap-4">
-                            <p class="text-zinc-200 text-sm sm:text-base leading-relaxed flex-1">${wish.wish_text}</p>
-                            <button onclick="deleteWish(${wish.id})" class="text-zinc-600 hover:text-rose-500 transition-colors p-1" title="Hapus Wishlist">
+                    const deleteBtnHtml = (wish.creator_name === currentUser) 
+                        ? `<button onclick="deleteWish(${wish.id})" class="text-zinc-600 hover:text-rose-500 transition-colors p-1" title="Hapus Wishlist">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 sm:h-5 sm:w-5" viewBox="0 0 20 20" fill="currentColor">
                                     <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
                                 </svg>
-                            </button>
+                           </button>` : '';
+
+                    card.innerHTML = `
+                        <div class="flex justify-between items-start mb-2 gap-4">
+                            <p class="text-zinc-200 text-sm sm:text-base leading-relaxed flex-1">${wish.wish_text}</p>
+                            ${deleteBtnHtml}
                         </div>
                         <div class="text-xs text-zinc-500 text-right">${dateStr}</div>
                     `;
                     
-                    if (wish.creator_name === 'Satria') {
-                        wishlistSatria.appendChild(card);
-                        countSatria++;
-                    } else if (wish.creator_name === 'Winda') {
-                        wishlistWinda.appendChild(card);
-                        countWinda++;
-                    }
+                    if (wish.creator_name === 'Satria') { wishlistSatria.appendChild(card); countSatria++; } 
+                    else if (wish.creator_name === 'Winda') { wishlistWinda.appendChild(card); countWinda++; }
                 });
             }
-
-            if (countSatria === 0) wishlistSatria.innerHTML = '<p class="text-zinc-500 text-center italic text-sm py-4">Belum ada wishlist dari Satria.</p>';
-            if (countWinda === 0) wishlistWinda.innerHTML = '<p class="text-zinc-500 text-center italic text-sm py-4">Belum ada wishlist dari Winda.</p>';
+            if (countSatria === 0) wishlistSatria.innerHTML = '<p class="text-zinc-500 text-center italic text-sm py-4">Belum ada wishlist.</p>';
+            if (countWinda === 0) wishlistWinda.innerHTML = '<p class="text-zinc-500 text-center italic text-sm py-4">Belum ada wishlist.</p>';
         }
 
-        // --- FUNGSI BARU: HAPUS WISHLIST ---
         async function deleteWish(id) {
-            const confirmDelete = confirm("Yakin ingin menghapus wishlist ini?");
-            if (confirmDelete) {
-                const { error } = await db.from('wishlists').delete().eq('id', id);
-                if (error) {
-                    alert('Gagal menghapus wishlist!');
-                    console.error(error);
-                } else {
-                    fetchWishlists(); // Refresh daftar setelah dihapus
-                }
+            if (confirm("Yakin ingin menghapus wishlist ini?")) {
+                await db.from('wishlists').delete().eq('id', id);
+                fetchWishlists(); 
             }
         }
 
         wishForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); 
-            
-            const creator = document.getElementById('creatorName').value;
+            e.preventDefault();
             const text = document.getElementById('wishText').value;
-
-            const originalBtnText = submitBtn.innerHTML;
-            submitBtn.innerHTML = 'Menyimpan...';
             submitBtn.disabled = true;
-
-            const { error } = await db
-                .from('wishlists')
-                .insert([{ creator_name: creator, wish_text: text }]);
-
-            if (error) {
-                alert('Gagal menyimpan wishlist!');
-                console.error(error);
-            } else {
-                wishForm.reset();
-                fetchWishlists(); 
-            }
-
-            submitBtn.innerHTML = originalBtnText;
+            await db.from('wishlists').insert([{ creator_name: currentUser, wish_text: text }]);
+            document.getElementById('wishText').value = ""; 
+            fetchWishlists(); 
             submitBtn.disabled = false;
         });
 
+        // ================= VIRTUAL PET =================
+        let currentStreak = 0, lastFedDate = null, lastFedSatria = null, lastFedWinda = null;
+        const noWaWinda = "6285745430757";
+        const noWaSatria = "62895327503576";
+
+        async function fetchPetStatus() {
+            const { data, error } = await db.from('pet_status').select('*').eq('id', 1).single();
+            if (data) {
+                currentStreak = data.streak || 0;
+                lastFedDate = data.last_fed_date;
+                lastFedSatria = data.last_fed_satria;
+                lastFedWinda = data.last_fed_winda;
+                document.getElementById('petNameDisplay').innerText = data.pet_name || "Panda Merah Kita";
+                updatePetUI();
+            }
+        }
+
+        function updatePetUI() {
+            document.getElementById('waNudgeContainer').classList.add('hidden'); 
+            const today = getTodayString();
+            let yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toLocaleDateString('en-CA');
+
+            if (lastFedDate !== today && lastFedDate !== yesterdayStr && lastFedDate !== null) {
+                document.getElementById('streakCount').innerText = "0"; 
+            } else {
+                document.getElementById('streakCount').innerText = currentStreak;
+            }
+            
+            const myBtn = currentUser === 'Satria' ? document.getElementById('feedSatriaBtn') : document.getElementById('feedWindaBtn');
+            const myLastFed = currentUser === 'Satria' ? lastFedSatria : lastFedWinda;
+            const theirLastFed = currentUser === 'Satria' ? lastFedWinda : lastFedSatria;
+            const theirName = currentUser === 'Satria' ? 'Winda' : 'Satria';
+            const theirWa = currentUser === 'Satria' ? noWaWinda : noWaSatria;
+
+            document.getElementById(currentUser === 'Satria' ? 'feedWindaBtn' : 'feedSatriaBtn').classList.add('hidden');
+
+            if (myLastFed === today) {
+                myBtn.disabled = true;
+                myBtn.innerHTML = `<span>✔️</span> ${currentUser} Selesai`;
+            } else {
+                myBtn.disabled = false;
+                myBtn.innerHTML = `<span>${currentUser === 'Satria' ? '👦🏻' : '👧🏻'}</span> ${currentUser} Beri Makan`;
+            }
+
+            if (lastFedSatria === today && lastFedWinda === today) {
+                document.getElementById('feedStatus').innerText = 'Panda sudah sangat kenyang hari ini! Apinya sudah bertambah 🔥';
+            } else if (myLastFed === today && theirLastFed !== today) {
+                document.getElementById('feedStatus').innerText = `Suruh ${theirName} kasih makan agar apinya bertambah!`;
+                document.getElementById('waNudgeContainer').classList.remove('hidden');
+                document.getElementById('waNudgeBtn').href = `https://wa.me/${theirWa}?text=woi%20kasih%20makan%20pet%20mu%20woi%20biar%20api%20kita%20nambah%20%F0%9F%98%A1`;
+                document.getElementById('waNudgeText').innerText = `Tagih ${theirName}`;
+            } else if (myLastFed !== today && theirLastFed === today) {
+                document.getElementById('feedStatus').innerText = `${theirName} sudah kasih makan. Giliranmu sekarang!`;
+            } else {
+                document.getElementById('feedStatus').innerText = 'Panda lapar! Jangan lupa kasih makan.';
+            }
+        }
+
+        async function handleFeed(person) {
+            const today = getTodayString();
+            let yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            const otherPersonLastFed = person === 'Satria' ? lastFedWinda : lastFedSatria;
+            let newStreak = currentStreak;
+            let newLastFedDate = lastFedDate; 
+
+            if (otherPersonLastFed === today) {
+                if (lastFedDate === yesterday.toLocaleDateString('en-CA')) newStreak += 1; 
+                else if (lastFedDate !== today) newStreak = 1; 
+                newLastFedDate = today; 
+            }
+
+            const updateData = { id: 1, streak: newStreak, last_fed_date: newLastFedDate, pet_name: document.getElementById('petNameDisplay').innerText };
+            if (person === 'Satria') updateData.last_fed_satria = today;
+            if (person === 'Winda') updateData.last_fed_winda = today;
+
+            const myBtn = document.getElementById(person === 'Satria' ? 'feedSatriaBtn' : 'feedWindaBtn');
+            myBtn.disabled = true; myBtn.innerHTML = '<span>⏳</span> Menyuapi...';
+
+            await db.from('pet_status').upsert(updateData);
+            
+            currentStreak = newStreak; lastFedDate = newLastFedDate;
+            if (person === 'Satria') lastFedSatria = today; else lastFedWinda = today;
+            updatePetUI();
+
+            const mouth = document.getElementById('petMouth'), body = document.getElementById('petBody');
+            mouth.classList.replace('border-b-2', 'bg-rose-500'); mouth.classList.replace('w-5', 'w-4'); mouth.classList.replace('h-3', 'h-4');
+            body.classList.add('scale-110'); 
+            setTimeout(() => {
+                mouth.classList.replace('bg-rose-500', 'border-b-2'); mouth.classList.replace('w-4', 'w-5'); mouth.classList.replace('h-4', 'h-3');
+                body.classList.remove('scale-110');
+            }, 1500);
+        }
+
+        document.getElementById('feedSatriaBtn').addEventListener('click', () => handleFeed('Satria'));
+        document.getElementById('feedWindaBtn').addEventListener('click', () => handleFeed('Winda'));
+
+        document.getElementById('editNameBtn').addEventListener('click', () => {
+            document.getElementById('editNameForm').classList.toggle('hidden');
+            document.getElementById('petNameInput').value = document.getElementById('petNameDisplay').innerText;
+        });
+
+        document.getElementById('saveNameBtn').addEventListener('click', async () => {
+            const newName = document.getElementById('petNameInput').value.trim();
+            if (!newName) return;
+            document.getElementById('saveNameBtn').disabled = true;
+            await db.from('pet_status').upsert({ id: 1, pet_name: newName });
+            document.getElementById('saveNameBtn').disabled = false;
+            document.getElementById('petNameDisplay').innerText = newName;
+            document.getElementById('editNameForm').classList.add('hidden');
+        });
+
+        // ================= CATATAN HARIAN =================
+        async function fetchNotes() {
+            const { data } = await db.from('daily_notes').select('*').order('created_at', { ascending: false });
+            if (data) renderNotes(data);
+        }
+
+        function renderNotes(notes) {
+            const today = getTodayString();
+            const myNote = notes.find(n => n.created_at === today && n.creator === currentUser);
+            const theirNote = notes.find(n => n.created_at === today && n.creator !== currentUser);
+            const theirName = currentUser === 'Satria' ? 'Winda' : 'Satria';
+            
+            document.getElementById('noteToMeTitle').innerText = `Catatan dari ${theirName}`;
+            document.getElementById('noteFromMeTitle').innerText = `Catatan untuk ${theirName}`;
+            
+            const noteToMeText = document.getElementById('noteToMeText');
+            if (theirNote) {
+                noteToMeText.innerText = `"${theirNote.note}"`;
+                noteToMeText.className = "text-center text-zinc-100 font-medium text-base leading-relaxed";
+            } else {
+                noteToMeText.innerText = "Belum ada catatan hari ini...";
+                noteToMeText.className = "text-center text-zinc-500 text-sm italic leading-relaxed";
+            }
+
+            if (myNote) {
+                document.getElementById('myNoteInput').value = myNote.note;
+                document.getElementById('saveNoteBtn').innerText = "Update Catatan";
+            }
+
+            const historyHtml = notes.map(n => `
+                <div class="bg-zinc-800/50 p-4 rounded-xl border border-zinc-700/50 hover:border-rose-900/50 transition-colors">
+                    <div class="flex justify-between text-xs text-zinc-400 mb-2 border-b border-zinc-800 pb-2">
+                        <span class="font-medium text-${n.creator === 'Satria' ? 'blue' : 'rose'}-400">📝 Dari: ${n.creator}</span>
+                        <span>${new Date(n.created_at).toLocaleDateString('id-ID', {day: 'numeric', month: 'long', year: 'numeric'})}</span>
+                    </div>
+                    <p class="text-zinc-200 text-sm italic">"${n.note}"</p>
+                </div>
+            `).join('');
+            document.getElementById('historyContent').innerHTML = historyHtml || '<p class="text-zinc-500 text-center text-sm py-10">Belum ada jejak memori...</p>';
+        }
+
+        document.getElementById('saveNoteBtn').addEventListener('click', async () => {
+            const note = document.getElementById('myNoteInput').value.trim();
+            if(!note) return;
+            const today = getTodayString();
+            const btn = document.getElementById('saveNoteBtn');
+            btn.innerText = "Menyimpan..."; btn.disabled = true;
+            
+            const { data: existing } = await db.from('daily_notes').select('id').eq('created_at', today).eq('creator', currentUser).maybeSingle();
+            
+            if (existing) {
+                await db.from('daily_notes').update({ note }).eq('id', existing.id);
+            } else {
+                await db.from('daily_notes').insert([{ created_at: today, creator: currentUser, note }]);
+            }
+            
+            btn.innerText = "Tersimpan 💌";
+            setTimeout(() => { btn.innerText = "Update Catatan"; btn.disabled = false; }, 2000);
+            fetchNotes();
+        });
+
+        function openHistoryModal() { document.getElementById('historyModal').classList.remove('hidden'); }
+        function closeHistoryModal() { document.getElementById('historyModal').classList.add('hidden'); }
+
+        // ================= GALERI BERSAMA (DENGAN LIGHTBOX) =================
+        let galleryDataGlobal = [];
+        let currentLightboxIndex = 0;
+
+        async function fetchGallery() {
+            const { data } = await db.from('gallery').select('*').order('created_at', { ascending: false });
+            if (data) renderGallery(data);
+        }
+        
+        function renderGallery(items) {
+            galleryDataGlobal = items;
+            const grid = document.getElementById('galleryGrid');
+            
+            if(items.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-zinc-500 text-sm py-10 italic">Belum ada foto/video. Yuk upload!</p>`;
+                return;
+            }
+            
+            grid.innerHTML = items.map((item, index) => {
+                let mediaHtml = item.media_type === 'video' 
+                    ? `<video src="${item.media_url}" class="w-full h-32 sm:h-48 object-cover rounded-xl"></video>`
+                    : `<img src="${item.media_url}" class="w-full h-32 sm:h-48 object-cover rounded-xl">`;
+                
+                return `
+                <div class="relative group rounded-xl border border-zinc-800/50 p-1 bg-zinc-900/50 cursor-pointer overflow-hidden transition-transform hover:scale-[1.02]" onclick="openLightbox(${index})">
+                    ${mediaHtml}
+                    <button onclick="event.stopPropagation(); deleteMedia(${item.id}, '${item.media_url}')" class="absolute top-3 right-3 bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-rose-600 text-xs shadow-lg z-10" title="Hapus Media">
+                        🗑️
+                    </button>
+                    <div class="absolute bottom-3 left-3 bg-black/60 px-2 py-1 rounded text-[10px] text-zinc-300 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                        By ${item.uploader}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        document.getElementById('mediaUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            
+            const status = document.getElementById('uploadStatus');
+            status.classList.remove('hidden'); status.classList.add('flex');
+            
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+            
+            const { error: uploadError } = await db.storage.from('gallery').upload(fileName, file);
+            
+            if (uploadError) {
+                alert('Gagal mengunggah. Pastikan ukurannya tidak terlalu besar!');
+                console.error(uploadError);
+                status.classList.add('hidden'); status.classList.remove('flex');
+                return;
+            }
+            
+            const { data } = db.storage.from('gallery').getPublicUrl(fileName);
+            const type = file.type.startsWith('video/') ? 'video' : 'image';
+            
+            await db.from('gallery').insert([{ uploader: currentUser, media_url: data.publicUrl, media_type: type }]);
+            
+            status.classList.add('hidden'); status.classList.remove('flex');
+            e.target.value = ''; 
+            fetchGallery();
+        });
+
+        async function deleteMedia(id, url) {
+            if(confirm("Yakin ingin menghapus memori ini dari galeri?")) {
+                const fileName = url.split('/').pop();
+                await db.storage.from('gallery').remove([fileName]);
+                await db.from('gallery').delete().eq('id', id);
+                fetchGallery();
+            }
+        }
+
+        // --- Fungsi Lightbox / Slider Galeri ---
+        const lightboxModal = document.getElementById('lightboxModal');
+        const lightboxImg = document.getElementById('lightboxImg');
+        const lightboxVideo = document.getElementById('lightboxVideo');
+        const lightboxInfo = document.getElementById('lightboxInfo');
+
+        function openLightbox(index) {
+            currentLightboxIndex = index;
+            lightboxModal.classList.remove('hidden');
+            // Sedikit delay agar animasi opacity berjalan
+            setTimeout(() => lightboxModal.classList.add('show'), 10); 
+            updateLightboxContent();
+        }
+
+        function closeLightbox() {
+            lightboxModal.classList.remove('show');
+            setTimeout(() => {
+                lightboxModal.classList.add('hidden');
+                lightboxVideo.pause(); // Matikan video jika sedang main
+            }, 300); // Tunggu durasi transisi selesai
+        }
+
+        function updateLightboxContent() {
+            const item = galleryDataGlobal[currentLightboxIndex];
+            
+            // Format tanggal uploader
+            const dateStr = new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            lightboxInfo.innerHTML = `Diunggah oleh <span class="font-semibold text-rose-400">${item.uploader}</span> &bull; ${dateStr}`;
+
+            if (item.media_type === 'video') {
+                lightboxImg.classList.add('hidden');
+                lightboxVideo.src = item.media_url;
+                lightboxVideo.classList.remove('hidden');
+                lightboxVideo.play();
+            } else {
+                lightboxVideo.classList.add('hidden');
+                lightboxVideo.pause();
+                lightboxImg.src = item.media_url;
+                lightboxImg.classList.remove('hidden');
+            }
+        }
+
+        function prevMedia() {
+            // Geser ke kiri (looping ke belakang jika mentok)
+            currentLightboxIndex = (currentLightboxIndex - 1 + galleryDataGlobal.length) % galleryDataGlobal.length;
+            updateLightboxContent();
+        }
+
+        function nextMedia() {
+            // Geser ke kanan (looping ke awal jika mentok)
+            currentLightboxIndex = (currentLightboxIndex + 1) % galleryDataGlobal.length;
+            updateLightboxContent();
+        }
+
+        // Tambahan: Tutup lightbox jika meng-klik background hitam (bukan fotonya)
+        lightboxModal.addEventListener('click', (e) => {
+            if (e.target === lightboxModal) closeLightbox();
+        });
+
+        // Tambahan: Geser pakai tombol keyboard Kiri/Kanan
+        document.addEventListener('keydown', (e) => {
+            if (!lightboxModal.classList.contains('hidden')) {
+                if (e.key === 'ArrowRight') nextMedia();
+                if (e.key === 'ArrowLeft') prevMedia();
+                if (e.key === 'Escape') closeLightbox();
+            }
+        });
+
+        // PANGGIL SEMUA FUNGSI SAAT WEB DIBUKA
         fetchWishlists();
+        fetchPetStatus();
+        fetchNotes();
+        fetchGallery();
     </script>
 </body>
 </html>
