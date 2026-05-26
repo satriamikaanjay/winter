@@ -351,7 +351,8 @@
         const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
         function getTodayString() {
-            return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' }); 
+            const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
 
         // ================= TRACKING LOKASI (LEAFLET) =================
@@ -476,7 +477,6 @@
             }
         }
 
-        // Fitur Pembacaan Nama Jalan (Geocoding)
         let lastGeocodeTime = 0;
         let cachedLocationName = "Mencari...";
         async function reverseGeocode(lat, lng) {
@@ -506,6 +506,116 @@
             }
             return "Koordinat: " + lat.toFixed(4) + ", " + lng.toFixed(4);
         }
+
+        // ================= VIRTUAL PET (FROZEN STREAK - TIDAK RESET KE 0) =================
+        let currentStreak = 0, lastFedDate = null, lastFedSatria = null, lastFedWinda = null;
+        const noWaWinda = "6285745430757";
+        const noWaSatria = "62895327503576";
+
+        async function fetchPetStatus() {
+            const { data } = await db.from('pet_status').select('*').eq('id', 1).single();
+            if (data) {
+                currentStreak = data.streak || 0;
+                lastFedDate = data.last_fed_date;
+                lastFedSatria = data.last_fed_satria;
+                lastFedWinda = data.last_fed_winda;
+                document.getElementById('petNameDisplay').innerText = data.pet_name || "Panda Merah Kita";
+                updatePetUI();
+            }
+        }
+
+        function updatePetUI() {
+            document.getElementById('waNudgeContainer').classList.add('hidden'); 
+            const today = getTodayString();
+            
+            // Streak selalu ditampilkan angkanya, tidak pernah hangus ke 0
+            document.getElementById('streakCount').innerText = currentStreak;
+            
+            const myBtn = currentUser === 'Satria' ? document.getElementById('feedSatriaBtn') : document.getElementById('feedWindaBtn');
+            const myLastFed = currentUser === 'Satria' ? lastFedSatria : lastFedWinda;
+            const theirLastFed = currentUser === 'Satria' ? lastFedWinda : lastFedSatria;
+            const theirName = currentUser === 'Satria' ? 'Winda' : 'Satria';
+            const theirWa = currentUser === 'Satria' ? noWaWinda : noWaSatria;
+
+            document.getElementById(currentUser === 'Satria' ? 'feedWindaBtn' : 'feedSatriaBtn').classList.add('hidden');
+
+            if (myLastFed === today) {
+                myBtn.disabled = true;
+                myBtn.innerHTML = `<span>✔️</span> ${currentUser} Selesai`;
+            } else {
+                myBtn.disabled = false;
+                myBtn.innerHTML = `<span>${currentUser === 'Satria' ? '👦🏻' : '👧🏻'}</span> ${currentUser} Beri Makan`;
+            }
+
+            if (lastFedSatria === today && lastFedWinda === today) {
+                document.getElementById('feedStatus').innerText = 'Panda sudah sangat kenyang hari ini! Apinya sudah bertambah 🔥';
+            } else if (myLastFed === today && theirLastFed !== today) {
+                document.getElementById('feedStatus').innerText = `Suruh ${theirName} kasih makan agar apinya bertambah!`;
+                document.getElementById('waNudgeContainer').classList.remove('hidden');
+                document.getElementById('waNudgeBtn').href = `https://wa.me/${theirWa}?text=woi%20kasih%20makan%20pet%20mu%20woi%20biar%20api%20kita%20nambah%20%F0%9F%98%A1`;
+                document.getElementById('waNudgeText').innerText = `Tagih ${theirName}`;
+            } else if (myLastFed !== today && theirLastFed === today) {
+                document.getElementById('feedStatus').innerText = `${theirName} sudah kasih makan. Giliranmu sekarang!`;
+            } else {
+                document.getElementById('feedStatus').innerText = 'Panda lapar! Jangan lupa kasih makan.';
+            }
+        }
+
+        async function handleFeed(person) {
+            const today = getTodayString();
+            const otherPersonLastFed = person === 'Satria' ? lastFedWinda : lastFedSatria;
+            
+            let newStreak = currentStreak;
+            let newLastFedDate = lastFedDate; 
+
+            // Api hanya akan naik +1 kalau pasangan juga sudah nge-klik di hari yang sama
+            // TIDAK ADA logika reset menjadi 1
+            if (otherPersonLastFed === today) {
+                if (lastFedDate !== today) {
+                    newStreak += 1; 
+                    newLastFedDate = today; 
+                }
+            }
+
+            const updateData = { id: 1, streak: newStreak, last_fed_date: newLastFedDate, pet_name: document.getElementById('petNameDisplay').innerText };
+            if (person === 'Satria') updateData.last_fed_satria = today;
+            if (person === 'Winda') updateData.last_fed_winda = today;
+
+            const myBtn = document.getElementById(person === 'Satria' ? 'feedSatriaBtn' : 'feedWindaBtn');
+            myBtn.disabled = true; myBtn.innerHTML = '<span>⏳</span> Menyuapi...';
+
+            await db.from('pet_status').upsert(updateData);
+            
+            currentStreak = newStreak; lastFedDate = newLastFedDate;
+            if (person === 'Satria') lastFedSatria = today; else lastFedWinda = today;
+            updatePetUI();
+
+            const mouth = document.getElementById('petMouth'), body = document.getElementById('petBody');
+            mouth.classList.replace('border-b-2', 'bg-rose-500'); mouth.classList.replace('w-5', 'w-4'); mouth.classList.replace('h-3', 'h-4');
+            body.classList.add('scale-110'); 
+            setTimeout(() => {
+                mouth.classList.replace('bg-rose-500', 'border-b-2'); mouth.classList.replace('w-4', 'w-5'); mouth.classList.replace('h-4', 'h-3');
+                body.classList.remove('scale-110');
+            }, 1500);
+        }
+
+        document.getElementById('feedSatriaBtn').addEventListener('click', () => handleFeed('Satria'));
+        document.getElementById('feedWindaBtn').addEventListener('click', () => handleFeed('Winda'));
+
+        document.getElementById('editNameBtn').addEventListener('click', () => {
+            document.getElementById('editNameForm').classList.toggle('hidden');
+            document.getElementById('petNameInput').value = document.getElementById('petNameDisplay').innerText;
+        });
+
+        document.getElementById('saveNameBtn').addEventListener('click', async () => {
+            const newName = document.getElementById('petNameInput').value.trim();
+            if (!newName) return;
+            document.getElementById('saveNameBtn').disabled = true;
+            await db.from('pet_status').upsert({ id: 1, pet_name: newName });
+            document.getElementById('saveNameBtn').disabled = false;
+            document.getElementById('petNameDisplay').innerText = newName;
+            document.getElementById('editNameForm').classList.add('hidden');
+        });
 
         // ================= WISHLIST KITA =================
         const wishForm = document.getElementById('wishForm');
@@ -554,120 +664,6 @@
             document.getElementById('wishText').value = ""; 
             fetchWishlists(); 
             submitBtn.disabled = false;
-        });
-
-        // ================= VIRTUAL PET =================
-        let currentStreak = 0, lastFedDate = null, lastFedSatria = null, lastFedWinda = null;
-        const noWaWinda = "6285745430757";
-        const noWaSatria = "62895327503576";
-
-        async function fetchPetStatus() {
-            const { data } = await db.from('pet_status').select('*').eq('id', 1).single();
-            if (data) {
-                currentStreak = data.streak || 0;
-                lastFedDate = data.last_fed_date;
-                lastFedSatria = data.last_fed_satria;
-                lastFedWinda = data.last_fed_winda;
-                document.getElementById('petNameDisplay').innerText = data.pet_name || "Panda Merah Kita";
-                updatePetUI();
-            }
-        }
-
-        function updatePetUI() {
-            document.getElementById('waNudgeContainer').classList.add('hidden'); 
-            const today = getTodayString();
-            let yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            if (lastFedDate !== today && lastFedDate !== yesterday.toLocaleDateString('en-CA') && lastFedDate !== null) {
-                document.getElementById('streakCount').innerText = "0"; 
-            } else {
-                document.getElementById('streakCount').innerText = currentStreak;
-            }
-            
-            const myBtn = currentUser === 'Satria' ? document.getElementById('feedSatriaBtn') : document.getElementById('feedWindaBtn');
-            const myLastFed = currentUser === 'Satria' ? lastFedSatria : lastFedWinda;
-            const theirLastFed = currentUser === 'Satria' ? lastFedWinda : lastFedSatria;
-            const theirName = currentUser === 'Satria' ? 'Winda' : 'Satria';
-            const theirWa = currentUser === 'Satria' ? noWaWinda : noWaSatria;
-
-            document.getElementById(currentUser === 'Satria' ? 'feedWindaBtn' : 'feedSatriaBtn').classList.add('hidden');
-
-            if (myLastFed === today) {
-                myBtn.disabled = true;
-                myBtn.innerHTML = `<span>✔️</span> ${currentUser} Selesai`;
-            } else {
-                myBtn.disabled = false;
-                myBtn.innerHTML = `<span>${currentUser === 'Satria' ? '👦🏻' : '👧🏻'}</span> ${currentUser} Beri Makan`;
-            }
-
-            if (lastFedSatria === today && lastFedWinda === today) {
-                document.getElementById('feedStatus').innerText = 'Panda sudah sangat kenyang hari ini! Apinya sudah bertambah 🔥';
-            } else if (myLastFed === today && theirLastFed !== today) {
-                document.getElementById('feedStatus').innerText = `Suruh ${theirName} kasih makan agar apinya bertambah!`;
-                document.getElementById('waNudgeContainer').classList.remove('hidden');
-                document.getElementById('waNudgeBtn').href = `https://wa.me/${theirWa}?text=woi%20kasih%20makan%20pet%20mu%20woi%20biar%20api%20kita%20nambah%20%F0%9F%98%A1`;
-                document.getElementById('waNudgeText').innerText = `Tagih ${theirName}`;
-            } else if (myLastFed !== today && theirLastFed === today) {
-                document.getElementById('feedStatus').innerText = `${theirName} sudah kasih makan. Giliranmu sekarang!`;
-            } else {
-                document.getElementById('feedStatus').innerText = 'Panda lapar! Jangan lupa kasih makan.';
-            }
-        }
-
-        async function handleFeed(person) {
-            const today = getTodayString();
-            let yesterday = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Jakarta' }));
-            yesterday.setDate(yesterday.getDate() - 1);
-            
-            const otherPersonLastFed = person === 'Satria' ? lastFedWinda : lastFedSatria;
-            let newStreak = currentStreak;
-            let newLastFedDate = lastFedDate; 
-
-            if (otherPersonLastFed === today) {
-                if (lastFedDate === yesterday.toLocaleDateString('en-CA')) newStreak += 1; 
-                else if (lastFedDate !== today) newStreak = 1; 
-                newLastFedDate = today; 
-            }
-
-            const updateData = { id: 1, streak: newStreak, last_fed_date: newLastFedDate, pet_name: document.getElementById('petNameDisplay').innerText };
-            if (person === 'Satria') updateData.last_fed_satria = today;
-            if (person === 'Winda') updateData.last_fed_winda = today;
-
-            const myBtn = document.getElementById(person === 'Satria' ? 'feedSatriaBtn' : 'feedWindaBtn');
-            myBtn.disabled = true; myBtn.innerHTML = '<span>⏳</span> Menyuapi...';
-
-            await db.from('pet_status').upsert(updateData);
-            
-            currentStreak = newStreak; lastFedDate = newLastFedDate;
-            if (person === 'Satria') lastFedSatria = today; else lastFedWinda = today;
-            updatePetUI();
-
-            const mouth = document.getElementById('petMouth'), body = document.getElementById('petBody');
-            mouth.classList.replace('border-b-2', 'bg-rose-500'); mouth.classList.replace('w-5', 'w-4'); mouth.classList.replace('h-3', 'h-4');
-            body.classList.add('scale-110'); 
-            setTimeout(() => {
-                mouth.classList.replace('bg-rose-500', 'border-b-2'); mouth.classList.replace('w-4', 'w-5'); mouth.classList.replace('h-4', 'h-3');
-                body.classList.remove('scale-110');
-            }, 1500);
-        }
-
-        document.getElementById('feedSatriaBtn').addEventListener('click', () => handleFeed('Satria'));
-        document.getElementById('feedWindaBtn').addEventListener('click', () => handleFeed('Winda'));
-
-        document.getElementById('editNameBtn').addEventListener('click', () => {
-            document.getElementById('editNameForm').classList.toggle('hidden');
-            document.getElementById('petNameInput').value = document.getElementById('petNameDisplay').innerText;
-        });
-
-        document.getElementById('saveNameBtn').addEventListener('click', async () => {
-            const newName = document.getElementById('petNameInput').value.trim();
-            if (!newName) return;
-            document.getElementById('saveNameBtn').disabled = true;
-            await db.from('pet_status').upsert({ id: 1, pet_name: newName });
-            document.getElementById('saveNameBtn').disabled = false;
-            document.getElementById('petNameDisplay').innerText = newName;
-            document.getElementById('editNameForm').classList.add('hidden');
         });
 
         // ================= CATATAN HARIAN =================
