@@ -149,11 +149,14 @@
             <div class="bg-zinc-800/40 border border-zinc-700/50 rounded-2xl overflow-hidden shadow-xl relative">
                 <div id="map" class="w-full h-[350px] sm:h-[450px] dark-map z-0"></div>
                 <div class="absolute bottom-0 left-0 right-0 bg-zinc-900/90 backdrop-blur-md px-4 py-3 flex justify-between items-center text-xs z-[400] border-t border-zinc-800/50">
-                    <span id="gpsStatus" class="text-zinc-400 flex items-center gap-2">
-                        <span class="animate-spin">⏳</span> Menghubungkan satelit...
-                    </span>
-                    <button onclick="centerMap()" class="text-rose-400 hover:text-rose-300 font-medium transition-colors bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">Fokus ke Kita</button>
-                </div>
+    <span id="gpsStatus" class="text-zinc-400 flex items-center gap-2">
+        <span class="animate-spin">⏳</span> Menghubungkan satelit...
+    </span>
+    <div class="flex gap-2">
+        <button id="wakeLockBtn" onclick="toggleWakeLock()" class="text-blue-400 hover:text-blue-300 font-medium transition-colors bg-blue-500/10 px-3 py-1.5 rounded-lg border border-blue-500/20">🛵 Mode Jalan</button>
+        <button onclick="centerMap()" class="text-rose-400 hover:text-rose-300 font-medium transition-colors bg-rose-500/10 px-3 py-1.5 rounded-lg border border-rose-500/20">Fokus</button>
+    </div>
+</div>
             </div>
         </div>
 
@@ -814,6 +817,41 @@
             fetchNotes();
             fetchGallery();
         };
+
+        // --- FITUR MODE BERKENDARA (LAYAR ANTI MATI) ---
+let wakeLock = null;
+async function toggleWakeLock() {
+    const btn = document.getElementById('wakeLockBtn');
+    if (wakeLock !== null) {
+        // Matikan Wake Lock
+        wakeLock.release();
+        wakeLock = null;
+        btn.innerHTML = '🛵 Mode Jalan';
+        btn.classList.replace('bg-rose-500/10', 'bg-blue-500/10');
+        btn.classList.replace('text-rose-400', 'text-blue-400');
+        btn.classList.replace('border-rose-500/20', 'border-blue-500/20');
+        alert("Mode Jalan dimatikan. Layar bisa tertidur normal.");
+    } else {
+        // Nyalakan Wake Lock
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            btn.innerHTML = '🛑 Berhenti';
+            btn.classList.replace('bg-blue-500/10', 'bg-rose-500/10');
+            btn.classList.replace('text-blue-400', 'text-rose-400');
+            btn.classList.replace('border-blue-500/20', 'border-rose-500/20');
+            alert("Mode Jalan aktif! Layar tidak akan mati otomatis. Redupkan cahaya HP-mu lalu masukkan ke saku untuk terus melacak.");
+            
+            // Jika HP sempat terminimize lalu dibuka lagi, otomatis nyalakan ulang Wake Lock
+            document.addEventListener('visibilitychange', async () => {
+                if (wakeLock !== null && document.visibilityState === 'visible') {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                }
+            });
+        } catch (err) {
+            alert("HP/Browser kamu tidak mendukung fitur Anti-Mati Layar.");
+        }
+    }
+}
     </script>
 </body>
 </html>
