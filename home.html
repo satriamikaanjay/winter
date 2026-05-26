@@ -372,34 +372,43 @@
             }).addTo(map);
 
             startGPS();
-            setInterval(fetchPartnerLocation, 5000);
+            
+            // SUPER CEPAT: Tarik data pasangan setiap 1.5 detik (seperti radar asli)
+            setInterval(fetchPartnerLocation, 1500);
         }
 
         function startGPS() {
             if (navigator.geolocation) {
+                // watchPosition akan otomatis terpanggil SETIAP KALI HP mendeteksi kamu melangkah
                 navigator.geolocation.watchPosition(
                     async (position) => {
                         const lat = position.coords.latitude;
                         const lng = position.coords.longitude;
                         myLastCoords = L.latLng(lat, lng);
-                        document.getElementById('gpsStatus').innerHTML = '✅ GPS Aktif';
+                        document.getElementById('gpsStatus').innerHTML = '✅ GPS Aktif (Live)';
+
+                        // Langsung update pergerakan kita di peta lokal tanpa nunggu database
+                        updateMapUI();
 
                         const locationName = await reverseGeocode(lat, lng);
 
+                        // Kirim kordinat terbaru ke Supabase secepat mungkin
                         await db.from('user_locations').upsert({
                             user_name: myName,
                             lat: lat,
                             lng: lng,
                             location_name: locationName
                         });
-
-                        updateMapUI();
                     },
                     (error) => {
-                        document.getElementById('gpsStatus').innerHTML = '⚠️ GPS Ditolak / Gagal';
+                        document.getElementById('gpsStatus').innerHTML = '⚠️ GPS Ditolak / Lemah';
                         console.error("GPS Error:", error);
                     },
-                    { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+                    { 
+                        enableHighAccuracy: true, // WAJIB TRUE untuk akurasi jalan kaki/motor
+                        maximumAge: 0,            // Jangan gunakan cache GPS lama
+                        timeout: 5000             
+                    }
                 );
             } else {
                 document.getElementById('gpsStatus').innerHTML = '❌ Browser tidak support GPS';
@@ -413,12 +422,15 @@
                 const myData = data.find(user => user.user_name === myName);
                 
                 if (partnerData && partnerData.lat && partnerData.lng) {
+                    // Update koordinat pasangan secara real-time
                     partnerLastCoords = L.latLng(partnerData.lat, partnerData.lng);
-                    document.getElementById(`lokasi${partnerName}`).innerText = partnerData.location_name || 'Lokasi ditemukan';
+                    document.getElementById(`lokasi${partnerName}`).innerText = partnerData.location_name || 'Melacak...';
                 }
                 if (myData && myData.location_name) {
                     document.getElementById(`lokasi${myName}`).innerText = myData.location_name;
                 }
+                
+                // Render ulang peta agar titik bergerak
                 updateMapUI();
             }
         }
@@ -429,23 +441,26 @@
             const coordsSatria = myName === 'Satria' ? myLastCoords : partnerLastCoords;
             const coordsWinda = myName === 'Winda' ? myLastCoords : partnerLastCoords;
 
+            // Marker Satria (Bergerak mulus karena setLatLng)
             if (coordsSatria) {
                 if (!satriaMarker) satriaMarker = L.marker(coordsSatria, {icon: satriaIcon}).addTo(map);
                 else satriaMarker.setLatLng(coordsSatria);
             }
 
+            // Marker Winda (Bergerak mulus karena setLatLng)
             if (coordsWinda) {
                 if (!windaMarker) windaMarker = L.marker(coordsWinda, {icon: windaIcon}).addTo(map);
                 else windaMarker.setLatLng(coordsWinda);
             }
 
+            // Garis dan Jarak otomatis menyesuaikan posisi marker
             if (coordsSatria && coordsWinda) {
                 if (connectionLine) map.removeLayer(connectionLine);
                 connectionLine = L.polyline([coordsSatria, coordsWinda], {color: '#f43f5e', weight: 3, dashArray: '5, 10'}).addTo(map);
                 
                 const distanceMeters = coordsSatria.distanceTo(coordsWinda);
                 let distanceText = distanceMeters > 1000 
-                    ? (distanceMeters / 1000).toFixed(1) + " km" 
+                    ? (distanceMeters / 1000).toFixed(2) + " km" // Dibuat 2 desimal agar kelihatan perubahannya saat jalan
                     : Math.round(distanceMeters) + " m";
                 
                 document.getElementById('jarakDisplay').innerText = distanceText;
@@ -457,7 +472,7 @@
                 const bounds = L.latLngBounds([myLastCoords, partnerLastCoords]);
                 map.fitBounds(bounds, { padding: [50, 50] });
             } else if (myLastCoords) {
-                map.setView(myLastCoords, 15);
+                map.setView(myLastCoords, 18); // Zoom in sangat dekat (level 18) agar kelihatan jalanannya
             }
         }
 
